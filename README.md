@@ -34,14 +34,19 @@ python pip-upgrader.py
 ```
 
 ### More options
+
+**For less output on screen:**
 ```bash
-# For less output on screen
 python pip-upgrader.py --quiet
+```
 
-# If you don't want to update pip itself
+**If you don't want to update pip itself:**
+```bash
 python pip-upgrader.py --skip-pip
+```
 
-# If your requirements file is somewhere else
+**If your requirements file is somewhere else:**
+```bash
 python pip-upgrader.py --requirements path/to/requirements.txt
 ```
 
@@ -68,12 +73,12 @@ pip-upgrader/
 ## How it works
 
 The script will:
-1. Check if pip needs an update
-2. Make a backup of your current packages list
-3. See what versions you have now
-4. Update everything except the packages you want to skip
-5. Tell you what got updated
-6. Keep the old versions of packages you wanted to skip
+- Check if pip needs an update
+- Make a backup of your current packages list
+- See what versions you have now
+- Update everything except the packages you want to skip
+- Tell you what got updated
+- Keep the old versions of packages you wanted to skip
 
 ## Good to know
 
@@ -85,6 +90,7 @@ The script will:
 
 Your contributions are very welcome! Here's how you can help:
 
+**Steps to contribute:**
 1. Fork the repository
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Make your changes
@@ -108,11 +114,13 @@ This project uses the MIT License - check out the [LICENSE](https://github.com/h
 ## Need help?
 
 If something's not working:
-1. Look through [existing issues](https://github.com/hmdqr/pip-upgrader/issues)
-2. [Create a new issue](https://github.com/hmdqr/pip-upgrader/issues/new) and tell us what's wrong
-3. Include any error messages you see
 
-You can also:
+**First steps:**
+- Look through [existing issues](https://github.com/hmdqr/pip-upgrader/issues)
+- [Create a new issue](https://github.com/hmdqr/pip-upgrader/issues/new) and tell us what's wrong
+- Include any error messages you see
+
+**Other ways to engage:**
 - Star the repository if you find it useful
 - Watch the repository to get notified about new updates
 - Share it with others who might find it helpful
