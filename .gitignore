@@ -33,6 +33,8 @@ env/
 *.swo
 
 # Backup files
+# Requirements files
+requirements.txt
 requirements_backup_*.txt
 
 # OS
