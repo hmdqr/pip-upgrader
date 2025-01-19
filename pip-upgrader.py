@@ -21,7 +21,9 @@ from datetime import datetime
 
 
 class PipUpgrader:
-    def __init__(self, requirements_file: str = "requirements.txt", quiet: bool = False):
+    def __init__(
+        self, requirements_file: str = "requirements.txt", quiet: bool = False
+    ):
         """
         Initialize PipUpgrader with configuration options.
 
@@ -38,8 +40,8 @@ class PipUpgrader:
         level = logging.WARNING if self.quiet else logging.INFO
         logging.basicConfig(
             level=level,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
     def get_skipped_packages(self) -> List[str]:
@@ -52,7 +54,11 @@ class PipUpgrader:
         skip_file = Path("skip_packages.txt")
         try:
             if skip_file.exists():
-                return [line.strip() for line in skip_file.read_text().splitlines() if line.strip()]
+                return [
+                    line.strip()
+                    for line in skip_file.read_text().splitlines()
+                    if line.strip()
+                ]
             return []
         except Exception as e:
             logging.error(f"Error reading skip_packages.txt: {e}")
@@ -70,11 +76,7 @@ class PipUpgrader:
         """
         try:
             return subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                check=True
+                command, shell=True, capture_output=True, text=True, check=True
             )
         except subprocess.CalledProcessError as e:
             logging.error(f"Error running pip command: {e}")
@@ -108,12 +110,17 @@ class PipUpgrader:
     def create_backup(self) -> None:
         """Create a backup of the requirements file."""
         if self.requirements_file.exists():
-            backup_name = f"requirements_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            backup_name = (
+                f"requirements_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            )
             try:
-                self.requirements_file.rename(Path(backup_name))
+                import shutil
+
+                shutil.copy2(self.requirements_file, backup_name)
                 logging.info(f"Created backup: {backup_name}")
             except Exception as e:
                 logging.error(f"Failed to create backup: {e}")
+                raise  # Raise the error to stop the process if backup fails
 
     def upgrade_packages(self) -> None:
         """Main method to handle the package upgrade process."""
@@ -126,18 +133,18 @@ class PipUpgrader:
             # Get current versions
             old_packages = self.get_installed_packages()
 
-            # Generate and modify requirements.txt
+            # Generate requirements.txt
             self.run_pip_command("pip freeze > requirements.txt")
-            
-            # Read and modify requirements
-            with open(self.requirements_file, 'r') as file:
-                requirements = file.readlines()
 
-            # Create backup before modifying
+            # Create backup before any modifications
             self.create_backup()
 
+            # Read and modify requirements
+            with open(self.requirements_file, "r") as file:
+                requirements = file.readlines()
+
             # Write modified requirements
-            with open(self.requirements_file, 'w') as file:
+            with open(self.requirements_file, "w") as file:
                 for line in requirements:
                     package_name = line.split("==")[0].lower()
                     if package_name in skipped_packages:
@@ -157,9 +164,12 @@ class PipUpgrader:
             logging.error(f"Error during upgrade process: {e}")
             raise
 
-    def _report_changes(self, old_packages: Dict[str, str], 
-                       new_packages: Dict[str, str], 
-                       skipped_packages: List[str]) -> None:
+    def _report_changes(
+        self,
+        old_packages: Dict[str, str],
+        new_packages: Dict[str, str],
+        skipped_packages: List[str],
+    ) -> None:
         """
         Report package version changes.
 
@@ -185,25 +195,28 @@ class PipUpgrader:
 
 def main():
     """Main entry point for the script."""
-    parser = argparse.ArgumentParser(description="Upgrade pip packages while maintaining control over versions.")
-    parser.add_argument("--requirements", default="requirements.txt",
-                      help="Path to requirements file (default: requirements.txt)")
-    parser.add_argument("--quiet", action="store_true",
-                      help="Suppress detailed output")
-    parser.add_argument("--skip-pip", action="store_true",
-                      help="Skip pip self-upgrade")
-    
+    parser = argparse.ArgumentParser(
+        description="Upgrade pip packages while maintaining control over versions."
+    )
+    parser.add_argument(
+        "--requirements",
+        default="requirements.txt",
+        help="Path to requirements file (default: requirements.txt)",
+    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress detailed output")
+    parser.add_argument("--skip-pip", action="store_true", help="Skip pip self-upgrade")
+
     args = parser.parse_args()
-    
+
     try:
         upgrader = PipUpgrader(requirements_file=args.requirements, quiet=args.quiet)
-        
+
         if not args.skip_pip:
             upgrader.upgrade_pip_if_available()
-            
+
         upgrader.upgrade_packages()
         logging.info("Script execution finished successfully.")
-        
+
     except Exception as e:
         logging.error(f"Script failed: {e}")
         sys.exit(1)
