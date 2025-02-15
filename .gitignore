@@ -5,38 +5,41 @@ __pycache__/
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
+# Virtual Environment - more comprehensive
 venv/
+.venv/
 ENV/
 env/
 .env/
+virtualenv/
+pythonenv*
 
-# IDE
+# IDE and Editors
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
-# Backup files
-# Requirements files
-requirements.txt
+# Backup files - more specific
 requirements_backup_*.txt
+*.bak
+*.backup
 
-# OS
+# Test files
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# OS specific
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Project specific
+skip_packages.txt
+test_requirements.txt

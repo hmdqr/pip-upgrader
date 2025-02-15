@@ -1,28 +1,59 @@
-#!/usr/bin/env python3
 """
-Pip Upgrader - A utility to safely upgrade pip packages.
+Pip Upgrader - A simple tool to update Python packages
 
-This script helps you upgrade your pip packages while maintaining control over specific
-package versions. It supports skipping certain packages and provides detailed output
-of version changes.
+What this tool does:
+1. Updates Python packages safely with backups
+2. Lets you skip packages you don't want to update
+3. Shows what changed after updates
 
-Author: Your Name
+Main features:
+- Makes backups automatically
+- Can skip packages you choose
+- Shows changes before making them
+- Shows clear reports
+
+Basic use:
+    python pip-upgrader.py [--requirements file] [--quiet] [--dry-run] [--skip-pip]
+
+Simple example:
+    python pip-upgrader.py --dry-run
+
+Author: Hamad AlQassar
 License: MIT
 """
 
 import subprocess
-import re
 import sys
+import platform
 import argparse
 import logging
 from typing import Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
 
+# Check Python version
+if sys.version_info < (3, 6):
+    print("Python 3.6 or higher is required")
+    sys.exit(1)
 
 class PipUpgrader:
+    """
+    Main tool to update Python packages.
+    
+    What it does:
+    - Updates packages and keeps backups
+    - Skips packages you don't want to update
+    - Shows changes before making them
+    
+    Settings:
+        requirements_file: Where to find package list
+        quiet: Show less output
+        dry_run: Just show what would change
+    """
+    
     def __init__(
-        self, requirements_file: str = "requirements.txt", quiet: bool = False
+        self, requirements_file: str = "requirements.txt", quiet: bool = False,
+        dry_run: bool = False
     ):
         """
         Initialize PipUpgrader with configuration options.
@@ -30,10 +61,17 @@ class PipUpgrader:
         Args:
             requirements_file (str): Path to the requirements file
             quiet (bool): Whether to suppress detailed output
+            dry_run (bool): Show proposed changes without executing them
         """
-        self.requirements_file = Path(requirements_file)
+        self.requirements_file = Path(requirements_file).resolve()
         self.quiet = quiet
+        self.dry_run = dry_run
+        self.is_windows = platform.system().lower() == "windows"
+        self.python_cmd = "python" if self.is_windows else "python3"
         self.setup_logging()
+
+        if not self.requirements_file.exists():
+            raise FileNotFoundError(f"Requirements file not found: {requirements_file}")
 
     def setup_logging(self) -> None:
         """Configure logging based on quiet mode."""
@@ -75,8 +113,22 @@ class PipUpgrader:
             subprocess.CompletedProcess: Result of the command
         """
         try:
+            # Make command platform-independent
+            if self.is_windows:
+                # Windows-specific command handling
+                command = command.replace("python -m pip", f"{self.python_cmd} -m pip")
+                shell = True
+            else:
+                # Unix-like systems
+                command = command.replace("python -m pip", f"{self.python_cmd} -m pip")
+                shell = False
+
             return subprocess.run(
-                command, shell=True, capture_output=True, text=True, check=True
+                command if shell else command.split(),
+                shell=shell,
+                capture_output=True,
+                text=True,
+                check=True
             )
         except subprocess.CalledProcessError as e:
             logging.error(f"Error running pip command: {e}")
@@ -107,23 +159,45 @@ class PipUpgrader:
         self.run_pip_command("python -m pip install --upgrade pip -q")
         logging.info("Pip upgrade check complete.")
 
-    def create_backup(self) -> None:
-        """Create a backup of the requirements file."""
+    def create_backup(self) -> Optional[str]:
+        """
+        Create a backup of the requirements file.
+        
+        Returns:
+            Optional[str]: Name of backup file if successful, None otherwise
+        """
         if self.requirements_file.exists():
             backup_name = (
                 f"requirements_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
             )
             try:
                 import shutil
-
                 shutil.copy2(self.requirements_file, backup_name)
                 logging.info(f"Created backup: {backup_name}")
+                return backup_name
             except Exception as e:
                 logging.error(f"Failed to create backup: {e}")
-                raise  # Raise the error to stop the process if backup fails
+                if not self.dry_run:
+                    raise  # Only raise if not in dry-run mode
+                return None
+        return None
 
     def upgrade_packages(self) -> None:
-        """Main method to handle the package upgrade process."""
+        """
+        Updates packages safely.
+        
+        Steps:
+        1. Reads list of packages to skip
+        2. Saves current versions
+        3. Makes backup
+        4. Updates packages
+        5. Shows what changed
+
+        Handles problems with:
+        - Backup fails
+        - Update fails
+        - File problems
+        """
         try:
             # Get skipped packages
             skipped_packages = self.get_skipped_packages()
@@ -133,28 +207,31 @@ class PipUpgrader:
             # Get current versions
             old_packages = self.get_installed_packages()
 
-            # Generate requirements.txt
-            self.run_pip_command("pip freeze > requirements.txt")
+            if self.dry_run:
+                logging.info("DRY RUN - No changes will be made")
+                self._simulate_upgrades(old_packages, skipped_packages)
+                return
 
             # Create backup before any modifications
-            self.create_backup()
+            backup_file = self.create_backup()
+            if not backup_file:
+                logging.error("Failed to create backup, aborting")
+                return
 
-            # Read and modify requirements
-            with open(self.requirements_file, "r") as file:
-                requirements = file.readlines()
-
-            # Write modified requirements
-            with open(self.requirements_file, "w") as file:
-                for line in requirements:
-                    package_name = line.split("==")[0].lower()
-                    if package_name in skipped_packages:
-                        file.write(line)
-                    else:
-                        file.write(line.replace("==", ">="))
+            # Process requirements file
+            try:
+                self._process_requirements(skipped_packages)
+            except Exception as e:
+                self._restore_backup(backup_file)
+                raise
 
             # Upgrade packages
             logging.info("Upgrading packages...")
-            self.run_pip_command("pip install -r requirements.txt --upgrade -q")
+            result = self.run_pip_command("pip install -r requirements.txt --upgrade")
+            if isinstance(result, subprocess.CalledProcessError):
+                self._restore_backup(backup_file)
+                logging.error("Package upgrade failed, restored backup")
+                return
 
             # Compare versions
             new_packages = self.get_installed_packages()
@@ -163,6 +240,56 @@ class PipUpgrader:
         except Exception as e:
             logging.error(f"Error during upgrade process: {e}")
             raise
+
+    def _simulate_upgrades(self, current_packages: Dict[str, str], 
+                          skipped_packages: List[str]) -> None:
+        """
+        Shows what would change without making changes.
+        
+        Inputs:
+            current_packages: List of packages and their versions now
+            skipped_packages: Packages to not update
+        
+        Shows:
+            - Which packages would update
+            - Current and new versions
+        """
+        logging.info("Checking for available upgrades...")
+        for package, version in current_packages.items():
+            if package not in skipped_packages:
+                result = self.run_pip_command(f"pip index versions {package}")
+                if not isinstance(result, subprocess.CalledProcessError):
+                    logging.info(f"Would upgrade {package} from {version}")
+
+    def _restore_backup(self, backup_file: str) -> None:
+        """Restore from backup file if upgrade fails."""
+        try:
+            import shutil
+            shutil.copy2(backup_file, self.requirements_file)
+            logging.info("Restored requirements.txt from backup")
+        except Exception as e:
+            logging.error(f"Failed to restore backup: {e}")
+
+    def _process_requirements(self, skipped_packages: List[str]) -> None:
+        """Process and update requirements file."""
+        with open(self.requirements_file, "r") as file:
+            requirements = file.readlines()
+
+        with open(self.requirements_file, "w") as file:
+            for line in requirements:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    file.write(line + '\n')
+                    continue
+                    
+                if '==' in line:
+                    package_name = line.split('==')[0].lower()
+                    if package_name in skipped_packages:
+                        file.write(line + '\n')
+                    else:
+                        file.write(line.replace("==", ">=") + '\n')
+                else:
+                    file.write(line + '\n')
 
     def _report_changes(
         self,
@@ -195,6 +322,17 @@ class PipUpgrader:
 
 def main():
     """Main entry point for the script."""
+    # Check if pip is installed
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "--version"],
+            check=True,
+            capture_output=True
+        )
+    except subprocess.CalledProcessError:
+        print("pip is not installed. Please install pip first.")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(
         description="Upgrade pip packages while maintaining control over versions."
     )
@@ -205,13 +343,19 @@ def main():
     )
     parser.add_argument("--quiet", action="store_true", help="Suppress detailed output")
     parser.add_argument("--skip-pip", action="store_true", help="Skip pip self-upgrade")
+    parser.add_argument("--dry-run", action="store_true", 
+                       help="Show proposed changes without executing them")
 
     args = parser.parse_args()
 
     try:
-        upgrader = PipUpgrader(requirements_file=args.requirements, quiet=args.quiet)
+        upgrader = PipUpgrader(
+            requirements_file=args.requirements,
+            quiet=args.quiet,
+            dry_run=args.dry_run
+        )
 
-        if not args.skip_pip:
+        if not args.skip_pip and not args.dry_run:
             upgrader.upgrade_pip_if_available()
 
         upgrader.upgrade_packages()

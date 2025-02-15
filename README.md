@@ -1,126 +1,76 @@
 # Pip Upgrader
 
-A simple tool to update your Python packages. It helps you keep your packages up to date while making sure nothing breaks.
+A tool to update your Python packages safely.
 
-## What it does
+## What It Does
+- ✅ Updates packages and makes backups automatically
+- ✅ Lets you choose which packages not to update
+- ✅ Shows what will change before doing it
+- ✅ Shows clear before/after reports
 
-- Updates all your pip packages automatically
-- Creates a backup of your packages list just in case
-- Lets you choose which packages not to update
-- Shows you what changed after the update
-- Can run quietly without showing too much information
-- Updates packages quickly and safely
+## Before You Start
+You need:
+- Python 3.6 or newer
+- A virtual environment (recommended)
+- A requirements.txt file
+  
+When you run `python pip-upgrader.py`:
+1. It looks for 'requirements.txt' in your folder
+2. If not found: Shows error message
+3. If found:
+   - Makes a backup of requirements.txt
+   - Updates packages (except ones you want to skip)
+   - Shows what changed
+   - If anything goes wrong, keeps your old files safe
 
-## Getting Started
+To Be Safe:
+1. Try first with `--dry-run` to see what will change
+2. Check you have requirements.txt
+3. Use a virtual environment
+4. Make a backup of your project
 
-1. Get the code:
+## How to Use
+
+### First Time Setup
 ```bash
 git clone https://github.com/hmdqr/pip-upgrader.git
 cd pip-upgrader
 ```
 
-2. Run it:
+### Simple Commands
 ```bash
+# Update everything
 python pip-upgrader.py
-```
 
-That's it! The script will handle everything else.
+# See what will change (safe to run)
+python pip-upgrader.py --dry-run
 
-## Other ways to use it
+# Use a different requirements file
+python pip-upgrader.py --requirements other-requirements.txt
 
-### Basic way
-```bash
-python pip-upgrader.py
-```
-
-### More options
-
-**For less output on screen:**
-```bash
+# Show less information
 python pip-upgrader.py --quiet
 ```
 
-**If you don't want to update pip itself:**
-```bash
-python pip-upgrader.py --skip-pip
+### Skip Some Packages
+Make a file called `skip_packages.txt` and list packages you don't want to update:
 ```
-
-**If your requirements file is somewhere else:**
-```bash
-python pip-upgrader.py --requirements path/to/requirements.txt
-```
-
-## Don't want to update certain packages?
-
-If you have some packages you don't want to update:
-
-1. Make a file called `skip_packages.txt`
-2. Write the package names you want to skip, one per line, like this:
-```
-tensorflow
 django
+requests
 ```
 
-## What's in the folder
+## Command Options
+- `--requirements`: Choose a different requirements file
+- `--quiet`: Show less output
+- `--skip-pip`: Don't update pip itself
+- `--dry-run`: Show changes without making them
 
-```
-pip-upgrader/
-├── pip-upgrader.py     # The main program
-├── skip_packages.txt   # List of packages you don't want to update (optional)
-└── requirements.txt    # Your list of packages
-```
+## Common Problems
 
-## How it works
+### Backup Not Working?
+- Check if you can write to the folder
+- Check if you have enough space
 
-The script will:
-- Check if pip needs an update
-- Make a backup of your current packages list
-- See what versions you have now
-- Update everything except the packages you want to skip
-- Tell you what got updated
-- Keep the old versions of packages you wanted to skip
-
-## Good to know
-
-- The script makes a backup automatically, so you won't lose your old package versions
-- It's a good idea to test your project after updating
-- Use the skip list if you need specific versions of some packages
-
-## Want to help? Please do!
-
-Your contributions are very welcome! Here's how you can help:
-
-**Steps to contribute:**
-1. Fork the repository
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Make your changes
-4. Commit your changes: `git commit -am 'Add some feature'`
-5. Push to the branch: `git push origin my-new-feature`
-6. Submit a pull request
-
-Don't worry if you're new to open source - we welcome all skill levels! You can help by:
-- Reporting bugs
-- Suggesting new features
-- Improving documentation
-- Fixing typos
-- Adding tests
-
-Check out our [issues page](https://github.com/hmdqr/pip-upgrader/issues) for ways to help.
-
-## License
-
-This project uses the MIT License - check out the [LICENSE](https://github.com/hmdqr/pip-upgrader/blob/main/LICENSE) file to learn more.
-
-## Need help?
-
-If something's not working:
-
-**First steps:**
-- Look through [existing issues](https://github.com/hmdqr/pip-upgrader/issues)
-- [Create a new issue](https://github.com/hmdqr/pip-upgrader/issues/new) and tell us what's wrong
-- Include any error messages you see
-
-**Other ways to engage:**
-- Star the repository if you find it useful
-- Watch the repository to get notified about new updates
-- Share it with others who might find it helpful
+### Updates Not Working?
+- Look at skip_packages.txt
+- Check if versions can work together
