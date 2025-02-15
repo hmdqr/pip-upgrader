@@ -43,3 +43,4 @@ desktop.ini
 # Project specific
 skip_packages.txt
 test_requirements.txt
+*.txt
